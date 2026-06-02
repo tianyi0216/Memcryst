@@ -208,16 +208,38 @@ def build_condensed_memory(
     output_dir: Path,
     min_cluster_size: int = 3,
     min_mean_reward: float = 0.4,
+    include_archived: bool = True,
 ) -> CondensedMemoryStore:
     """End-to-end: cluster the memory bank with M1, summarize each cluster
     with the LLM, store as a CondensedMemoryStore at output_dir.
 
     No skill structure is added. No audit gate. Just cluster + summarize.
+
+    include_archived: if True (default), restore ARCHIVED entries to ACTIVE
+    before clustering. This is essential when the memory bank has already
+    been crystallized once (sleep archives the source entries). Without
+    this, M1 only sees the post-crystallization residue and produces
+    incoherent clusters. The restoration is in-memory only; the source
+    memory store on disk is not modified.
     """
     import hashlib
 
+    from ..memory_bank.schema import EntryStatus
+
     output_dir.mkdir(parents=True, exist_ok=True)
     condensed_store = CondensedMemoryStore(store_dir=output_dir)
+
+    if include_archived:
+        restored = 0
+        for entry in memory_store:
+            if entry.status == EntryStatus.ARCHIVED:
+                entry.status = EntryStatus.ACTIVE
+                restored += 1
+        if restored:
+            logger.info(
+                "memory_condense: temporarily restored %d archived entries to ACTIVE for clustering",
+                restored,
+            )
 
     retriever = MemoryRetriever(memory_store)
     miner = PatternMiner(

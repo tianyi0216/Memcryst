@@ -52,6 +52,7 @@ from rich.table import Table
 
 from memcryst.core import LLMClient
 from memcryst.memory_bank import MemoryEntry, MemoryRetriever, MemoryStore
+from memcryst.memory_bank.schema import EntryStatus
 from memcryst.skill_bank import SkillStore
 from memcryst.sleep import (
     FeedbackLoop,
@@ -156,6 +157,18 @@ def apply_curated_feedback(
         keyword = item["skill_match_keyword"]
         matching_skills = [s for s in skill_store if keyword in s.name]
         for skill in matching_skills:
+            # Simulate round-1 usage statistics so M3's gate fires.
+            # Without this the skill has use_count=0 and _should_flag()
+            # returns False unconditionally. We model "skill was used N
+            # times, failed F of those" where F/N > failure_threshold (0.1).
+            total_failures = sum(item["axis_failures"].values())
+            # 70 percent failure rate is well above the default 0.1 threshold.
+            simulated_uses = max(5, total_failures + 2)
+            simulated_failures = total_failures
+            for _ in range(simulated_failures):
+                skill_store.record_use(skill.id, success=False)
+            for _ in range(simulated_uses - simulated_failures):
+                skill_store.record_use(skill.id, success=True)
             for axis, count in item["axis_failures"].items():
                 for _ in range(count):
                     skill_store.record_axis_failure(skill.id, axis)
@@ -243,8 +256,27 @@ def main() -> int:
     memory_store = MemoryStore(store_dir=output_dir / "memory")
     skill_store_v1_view = SkillStore(store_dir=output_dir / "skills")
     console.print(
-        f"loaded v1: {len(memory_store)} memory entries, {len(skill_store_v1_view)} skills\n"
+        f"loaded v1: {len(memory_store)} memory entries, {len(skill_store_v1_view)} skills"
     )
+
+    # Critical: restore archived entries to ACTIVE before re-crystallization.
+    # Without this, M1 in the v2 sleep only sees the residue (the 10 entries
+    # that were not part of any v1 cluster), produces fragmented clusters,
+    # and v2 skill bank ends up with generic "place-object" / "process-then-place"
+    # garbage skills instead of clean family-specific skills. Restoring is
+    # the right behavior because the v2 sleep should re-crystallize the
+    # full updated memory, not just the never-clustered tail.
+    restored = 0
+    for entry in memory_store:
+        if entry.status == EntryStatus.ARCHIVED:
+            entry.status = EntryStatus.ACTIVE
+            restored += 1
+    if restored:
+        memory_store.save()
+        console.print(
+            f"[yellow]restored {restored} archived entries to ACTIVE for re-crystallization[/yellow]"
+        )
+    console.print()
 
     # Step 1: Apply curated round-1 feedback.
     console.rule("step 1: apply curated round-1 feedback")
