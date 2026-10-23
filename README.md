@@ -3,11 +3,16 @@
   <h3>MemCryst: Bidirectional Coevolution of Memory and Skills for Lifelong LLM Agents</h3>
 
   <p>
-    <a href="https://tianyi0216.github.io/">Tianyi Xu</a><sup>1</sup>
+    <a href="https://tianyi0216.github.io/">Tianyi Xu</a><sup>1</sup>&nbsp;&middot;&nbsp;
+    <a href="https://huazhengwang.github.io/">Huazheng Wang</a><sup>1&#9993;</sup>
   </p>
 
   <p>
-    <sup>1</sup> University of Wisconsin&ndash;Madison
+    <sup>1</sup> Oregon State University
+  </p>
+
+  <p>
+    <sup>&#9993;</sup> Corresponding author
   </p>
 
   <p>
@@ -160,6 +165,15 @@ shuffled task orders and reports mean, sample SD and min-max over runs. A
 full ALFWorld run (600 tasks) takes about 3-4 hours on one L40-class GPU
 serving Qwen3-8B; the QA stream takes a few hours.
 
+## Tests
+
+Offline checks that need no model or benchmark data:
+
+```bash
+pip install pytest
+PYTHONPATH=src pytest -q tests
+```
+
 ## Outputs
 
 `runs/<name>/lifelong.json` holds, per cycle, the wake records
@@ -175,7 +189,7 @@ per-cycle curve and the first-to-last-quarter change.
 ```bibtex
 @misc{xu2026memcryst,
       title={MemCryst: Bidirectional Coevolution of Memory and Skills for Lifelong LLM Agents},
-      author={Tianyi Xu},
+      author={Tianyi Xu and Huazheng Wang},
       year={2026},
       eprint={TBD},
       archivePrefix={arXiv},

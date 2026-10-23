@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper."
+title: "MemCryst: Bidirectional Coevolution of Memory and Skills for Lifelong LLM Agents"
+authors:
+  - family-names: Xu
+    given-names: Tianyi
+    affiliation: Oregon State University
+  - family-names: Wang
+    given-names: Huazheng
+    affiliation: Oregon State University
+year: 2026
+repository-code: https://github.com/tianyi0216/Memcryst
+license: MIT
