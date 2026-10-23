@@ -1,1 +1,6 @@
 __pycache__/
+*.pyc
+runs/
+*.log
+data/raw/
+.DS_Store

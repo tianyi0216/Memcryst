@@ -1,0 +1,59 @@
+# Reference: plain actor on the conversational QA stream (nothing served).
+run:
+  name: dialsim_vanilla
+  out_root: runs
+model:
+  name: Qwen/Qwen3-8B
+  base_url: http://127.0.0.1:8000/v1
+  api_key_env: OPENAI_API_KEY
+  roles:
+    agent: null
+    writeback: null
+    synth: null
+    audit: null
+env:
+  kind: taskstream
+  stream_file: data/processed/dialsim/dialsim_shuf.json
+  stream_kind: qa
+  stream_eval: f1
+  split: train
+  eval_split: train
+  eval_tasks: 1
+  eval_task_start: 0
+  eval_every: 999
+  max_steps: 4
+stream:
+  num_cycles: 7
+  tasks_per_cycle: 165
+actor:
+  mode: vanilla
+  nav_hint: 0
+  wm_enforce: 0
+  qa_anscall: 1
+memory:
+  top_k: 12
+  raw_layer: 1
+  raw_topk: 6
+  raw_recency: 4
+  raw_deinstantiate: 0
+  fact_style: qa
+  writeback_verbatim: 2
+  writeback_session_only: 1
+  hybrid_lexical: 1
+  env_scoped: 1
+  embed_model: BAAI/bge-m3
+skills:
+  top_k: 2
+  refine: true
+  synth_prompt: synthesize_skill_conditional
+  gap_val_n: 12
+  gap_val_start: 3000
+  dedup: 1
+  fallback: 1
+  failure_memory: 0
+  min_cluster_size: 3
+  m3_mode: 'off'
+feedback:
+  memory_return: 1
+  skill_return: 1
+extra_env: {}

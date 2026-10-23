@@ -1,0 +1,52 @@
+# Full recipe on ALFWorld: memory + skills served, both return channels on.
+run:
+  name: alfworld_full
+  out_root: runs
+
+model:
+  name: Qwen/Qwen3-8B                  # served model name (all four roles: actor, writeback, synthesis, audit)
+  base_url: http://127.0.0.1:8000/v1   # OpenAI-compatible endpoint (bash serve_vllm.sh)
+  api_key_env: OPENAI_API_KEY          # env var holding the key; "EMPTY" is used when unset (local vLLM)
+  roles: {agent: null, writeback: null, synth: null, audit: null}   # per-role overrides
+
+env:
+  kind: alfworld
+  alfworld_data: null                  # path from data/prepare_alfworld.sh; null = use $ALFWORLD_DATA
+  split: train                         # task stream = the train split, played in the environment's fixed order
+  eval_split: eval_out_of_distribution # held-out probe split (one task at start/end of the run)
+  eval_tasks: 1
+  eval_task_start: 84
+  eval_every: 999
+  max_steps: 30                        # actions per task
+  order_manifest: null                 # data/manifests/alf_order/order_seed101.json for a shuffled task order
+
+stream:
+  num_cycles: 20                       # 20 cycles x 30 tasks = 600-task stream
+  tasks_per_cycle: 30                  # sleep (mine / synthesize / audit / revise) after every cycle
+
+actor:
+  mode: capability_plus_semantic       # skills + semantic facts served to the actor; "vanilla" = plain ReAct
+  nav_hint: 1                          # navigation hint in the prompt
+  wm_enforce: 1                        # working-memory guard against revisiting receptacles
+
+memory:
+  top_k: 4                             # semantic facts served per task (0 = memory not served)
+  raw_layer: 0                         # verbatim episode excerpts (used for conversational QA)
+  semantic_profile: 0
+
+skills:
+  top_k: 2                             # skills served per task (0 = skills not served)
+  refine: true                         # revise existing skills at sleep time (false = create only)
+  synth_prompt: synthesize_skill_conditional
+  gap_val_n: 12                        # size of the validation probe that gates skill admission
+  gap_val_start: 3000
+  freeze_after: null                   # -1 = never run sleep (memory-only ablation)
+  failure_memory: 0
+  min_cluster_size: 3
+  m3_mode: "off"
+
+feedback:
+  memory_return: 1                     # task outcome returned to the facts that were served
+  skill_return: 1                      # task outcome returned to the skills that were served
+
+extra_env: {}                          # any additional MEMCRYST_* switch, e.g. {MEMCRYST_SECONDPASS: 1}
